@@ -142,10 +142,14 @@ def histogram_with_bin_size(series, title, x_title, bin_size=5, color="#1f77b4")
         title=title,
         xaxis_title=x_title,
         yaxis_title="Count",
-        bargap=0.05
+        bargap=0.08
     )
 
-    fig.update_xaxes(dtick=bin_size)
+    fig.update_xaxes(
+        tick0=start_val,
+        dtick=bin_size
+    )
+
     return fig
 
 # ── HEADER ────────────────────────────────────────────
@@ -218,10 +222,11 @@ c6.plotly_chart(fig6, use_container_width=True, theme=None)
 fig7 = histogram_with_bin_size(
     filtered_df["hh_size"],
     title="Household Size Distribution",
-    x_title="Household Size (groups of 5)",
-    bin_size=5,
+    x_title="Household Size",
+    bin_size=1,
     color="#E67E22"
 )
+fig7.update_xaxes(dtick=1)
 c7.plotly_chart(fig7, use_container_width=True, theme=None)
 
 # ── ROW 4: MORE INSIGHTS ──────────────────────────────
