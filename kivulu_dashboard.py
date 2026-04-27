@@ -50,6 +50,7 @@ for col in expected_cols:
     if col not in df.columns:
         df[col] = "unknown"
 
+# Convert numeric safely
 df["respondent_age"] = pd.to_numeric(df["respondent_age"], errors="coerce")
 df["hh_size"] = pd.to_numeric(df["hh_size"], errors="coerce")
 df["illness_episodes_3m"] = pd.to_numeric(df["illness_episodes_3m"], errors="coerce")
@@ -103,24 +104,6 @@ def safe_bar(dataframe, x_col, title):
         color=x_col
     )
 
-def safe_histogram(dataframe, col, title, nbins=10, x_label=None, y_label="Number of Respondents"):
-    valid = dataframe.dropna(subset=[col]) if col in dataframe.columns else pd.DataFrame()
-
-    if valid.empty:
-        fig = px.histogram(pd.DataFrame({col: []}), x=col, title=f"{title} (No data)")
-    else:
-        fig = px.histogram(
-            valid,
-            x=col,
-            nbins=nbins,
-            title=title
-        )
-
-    fig.update_xaxes(title_text=x_label if x_label else col)
-    fig.update_yaxes(title_text=y_label)
-    fig.update_layout(bargap=0.05)
-    return fig
-
 # ── HEADER ────────────────────────────────────────────
 st.title("🏥 Kivulu Health & Vulnerability Dashboard")
 st.caption("Interactive GIS Household Survey")
@@ -171,38 +154,63 @@ c3.plotly_chart(fig3, use_container_width=True, theme=None)
 c4, c5 = st.columns(2)
 
 fig4 = safe_bar(filtered_df, "main_illness", "Main Illness")
+fig4.update_xaxes(tickangle=-30, nticks=6)
 c4.plotly_chart(fig4, use_container_width=True, theme=None)
 
 fig5 = safe_bar(filtered_df, "income_stability", "Income Stability")
+fig5.update_xaxes(tickangle=-20, nticks=6)
 c5.plotly_chart(fig5, use_container_width=True, theme=None)
 
-# ── ROW 3: HISTOGRAMS ─────────────────────────────────
+# ── ROW 3: DIFFERENT NUMERIC CHARTS ───────────────────
 c6, c7 = st.columns(2)
 
-fig6 = safe_histogram(
-    filtered_df,
-    col="respondent_age",
-    title="Age Distribution",
-    nbins=8,
-    x_label="Respondent Age (years)",
-    y_label="Number of Respondents"
-)
+age_df = filtered_df.dropna(subset=["respondent_age"])
+hh_df = filtered_df.dropna(subset=["hh_size"])
+
+# Respondent Age → Box Plot
+if age_df.empty:
+    fig6 = px.box(
+        pd.DataFrame({"respondent_age": []}),
+        y="respondent_age",
+        title="Respondent Age (No data)"
+    )
+else:
+    fig6 = px.box(
+        age_df,
+        y="respondent_age",
+        points="outliers",
+        title="Respondent Age Distribution"
+    )
+
+fig6.update_yaxes(title_text="Respondent Age (years)", nticks=8)
+fig6.update_xaxes(showticklabels=False)
 c6.plotly_chart(fig6, use_container_width=True, theme=None)
 
-fig7 = safe_histogram(
-    filtered_df,
-    col="hh_size",
-    title="Household Size Distribution",
-    nbins=10,
-    x_label="Household Size",
-    y_label="Number of Households"
-)
+# Household Size → Violin Plot
+if hh_df.empty:
+    fig7 = px.violin(
+        pd.DataFrame({"hh_size": []}),
+        y="hh_size",
+        title="Household Size (No data)"
+    )
+else:
+    fig7 = px.violin(
+        hh_df,
+        y="hh_size",
+        box=True,
+        points="all",
+        title="Household Size Distribution"
+    )
+
+fig7.update_yaxes(title_text="Household Size", nticks=8)
+fig7.update_xaxes(showticklabels=False)
 c7.plotly_chart(fig7, use_container_width=True, theme=None)
 
 # ── ROW 4: MORE INSIGHTS ──────────────────────────────
 c8, c9 = st.columns(2)
 
 fig8 = safe_bar(filtered_df, "transport_mode", "Transport to Facility")
+fig8.update_xaxes(tickangle=-25, nticks=6)
 c8.plotly_chart(fig8, use_container_width=True, theme=None)
 
 chronic_counts = make_counts(filtered_df, "chronic_illness")
