@@ -1,7 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import os
+import math
 
 # ── PAGE CONFIG ───────────────────────────────────────
 st.set_page_config(
@@ -106,19 +108,45 @@ def safe_bar(dataframe, x_col, title):
     fig.update_xaxes(tickangle=-25, nticks=6)
     return fig
 
-def safe_value(series, mode="mean"):
+def histogram_with_bin_size(series, title, x_title, bin_size=5, color="#1f77b4"):
     valid = series.dropna()
+
     if valid.empty:
-        return "N/A"
-    if mode == "mean":
-        return f"{valid.mean():.1f}"
-    if mode == "median":
-        return f"{valid.median():.1f}"
-    if mode == "max":
-        return f"{valid.max():.0f}"
-    if mode == "min":
-        return f"{valid.min():.0f}"
-    return "N/A"
+        fig = go.Figure()
+        fig.update_layout(
+            title=f"{title} (No data)",
+            xaxis_title=x_title,
+            yaxis_title="Count"
+        )
+        return fig
+
+    start_val = math.floor(valid.min() / bin_size) * bin_size
+    end_val = math.ceil(valid.max() / bin_size) * bin_size + bin_size
+
+    fig = go.Figure(
+        data=[
+            go.Histogram(
+                x=valid,
+                xbins=dict(
+                    start=start_val,
+                    end=end_val,
+                    size=bin_size
+                ),
+                marker_color=color,
+                opacity=0.85
+            )
+        ]
+    )
+
+    fig.update_layout(
+        title=title,
+        xaxis_title=x_title,
+        yaxis_title="Count",
+        bargap=0.05
+    )
+
+    fig.update_xaxes(dtick=bin_size)
+    return fig
 
 # ── HEADER ────────────────────────────────────────────
 st.title("🏥 Kivulu Health & Vulnerability Dashboard")
@@ -175,49 +203,26 @@ c4.plotly_chart(fig4, use_container_width=True, theme=None)
 fig5 = safe_bar(filtered_df, "income_stability", "Income Stability")
 c5.plotly_chart(fig5, use_container_width=True, theme=None)
 
-# ── ROW 3: AGE SCATTER + HOUSEHOLD NUMBERS ────────────
+# ── ROW 3: AGE + HOUSEHOLD SIZE BAR GRAPHS ────────────
 c6, c7 = st.columns(2)
 
-# Respondent Age Scatter Plot
-age_df = filtered_df.dropna(subset=["respondent_age"]).copy()
-age_df = age_df.reset_index(drop=True)
-age_df["record_no"] = age_df.index + 1
-
-if age_df.empty:
-    fig6 = px.scatter(
-        pd.DataFrame({"record_no": [], "respondent_age": []}),
-        x="record_no",
-        y="respondent_age",
-        title="Respondent Age (No data)"
-    )
-else:
-    fig6 = px.scatter(
-        age_df,
-        x="record_no",
-        y="respondent_age",
-        title="Respondent Age Scatter Plot",
-        labels={
-            "record_no": "Record Number",
-            "respondent_age": "Respondent Age (years)"
-        }
-    )
-
-fig6.update_traces(marker=dict(size=9, opacity=0.75))
-fig6.update_xaxes(title_text="Record Number", nticks=8)
-fig6.update_yaxes(title_text="Respondent Age (years)")
+fig6 = histogram_with_bin_size(
+    filtered_df["respondent_age"],
+    title="Respondent Age Distribution",
+    x_title="Respondent Age (5-year groups)",
+    bin_size=5,
+    color="#2E86DE"
+)
 c6.plotly_chart(fig6, use_container_width=True, theme=None)
 
-# Household Size Numeric Summary
-with c7:
-    st.markdown("### 📌 Household Size Summary")
-
-    m1, m2 = st.columns(2)
-    m3, m4 = st.columns(2)
-
-    m1.metric("Average HH Size", safe_value(filtered_df["hh_size"], "mean"))
-    m2.metric("Median HH Size", safe_value(filtered_df["hh_size"], "median"))
-    m3.metric("Min HH Size", safe_value(filtered_df["hh_size"], "min"))
-    m4.metric("Max HH Size", safe_value(filtered_df["hh_size"], "max"))
+fig7 = histogram_with_bin_size(
+    filtered_df["hh_size"],
+    title="Household Size Distribution",
+    x_title="Household Size (groups of 5)",
+    bin_size=5,
+    color="#E67E22"
+)
+c7.plotly_chart(fig7, use_container_width=True, theme=None)
 
 # ── ROW 4: MORE INSIGHTS ──────────────────────────────
 c8, c9 = st.columns(2)
