@@ -175,15 +175,49 @@ c4.plotly_chart(fig4, use_container_width=True, theme=None)
 fig5 = safe_bar(filtered_df, "income_stability", "Income Stability")
 c5.plotly_chart(fig5, use_container_width=True, theme=None)
 
-# ── ROW 3: NUMERIC SUMMARIES ──────────────────────────
-st.markdown("### 📌 Respondent and Household Summary")
+# ── ROW 3: AGE SCATTER + HOUSEHOLD NUMBERS ────────────
+c6, c7 = st.columns(2)
 
-n1, n2, n3, n4 = st.columns(4)
+# Respondent Age Scatter Plot
+age_df = filtered_df.dropna(subset=["respondent_age"]).copy()
+age_df = age_df.reset_index(drop=True)
+age_df["record_no"] = age_df.index + 1
 
-n1.metric("Average Age", safe_value(filtered_df["respondent_age"], "mean"))
-n2.metric("Median Age", safe_value(filtered_df["respondent_age"], "median"))
-n3.metric("Average Household Size", safe_value(filtered_df["hh_size"], "mean"))
-n4.metric("Median Household Size", safe_value(filtered_df["hh_size"], "median"))
+if age_df.empty:
+    fig6 = px.scatter(
+        pd.DataFrame({"record_no": [], "respondent_age": []}),
+        x="record_no",
+        y="respondent_age",
+        title="Respondent Age (No data)"
+    )
+else:
+    fig6 = px.scatter(
+        age_df,
+        x="record_no",
+        y="respondent_age",
+        title="Respondent Age Scatter Plot",
+        labels={
+            "record_no": "Record Number",
+            "respondent_age": "Respondent Age (years)"
+        }
+    )
+
+fig6.update_traces(marker=dict(size=9, opacity=0.75))
+fig6.update_xaxes(title_text="Record Number", nticks=8)
+fig6.update_yaxes(title_text="Respondent Age (years)")
+c6.plotly_chart(fig6, use_container_width=True, theme=None)
+
+# Household Size Numeric Summary
+with c7:
+    st.markdown("### 📌 Household Size Summary")
+
+    m1, m2 = st.columns(2)
+    m3, m4 = st.columns(2)
+
+    m1.metric("Average HH Size", safe_value(filtered_df["hh_size"], "mean"))
+    m2.metric("Median HH Size", safe_value(filtered_df["hh_size"], "median"))
+    m3.metric("Min HH Size", safe_value(filtered_df["hh_size"], "min"))
+    m4.metric("Max HH Size", safe_value(filtered_df["hh_size"], "max"))
 
 # ── ROW 4: MORE INSIGHTS ──────────────────────────────
 c8, c9 = st.columns(2)
