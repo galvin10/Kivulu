@@ -96,13 +96,29 @@ def safe_bar(dataframe, x_col, title):
     if counts.empty:
         counts = pd.DataFrame({x_col: ["No data"], "count": [0]})
 
-    return px.bar(
+    fig = px.bar(
         counts,
         x=x_col,
         y="count",
         title=title,
         color=x_col
     )
+    fig.update_xaxes(tickangle=-25, nticks=6)
+    return fig
+
+def safe_value(series, mode="mean"):
+    valid = series.dropna()
+    if valid.empty:
+        return "N/A"
+    if mode == "mean":
+        return f"{valid.mean():.1f}"
+    if mode == "median":
+        return f"{valid.median():.1f}"
+    if mode == "max":
+        return f"{valid.max():.0f}"
+    if mode == "min":
+        return f"{valid.min():.0f}"
+    return "N/A"
 
 # ── HEADER ────────────────────────────────────────────
 st.title("🏥 Kivulu Health & Vulnerability Dashboard")
@@ -154,63 +170,25 @@ c3.plotly_chart(fig3, use_container_width=True, theme=None)
 c4, c5 = st.columns(2)
 
 fig4 = safe_bar(filtered_df, "main_illness", "Main Illness")
-fig4.update_xaxes(tickangle=-30, nticks=6)
 c4.plotly_chart(fig4, use_container_width=True, theme=None)
 
 fig5 = safe_bar(filtered_df, "income_stability", "Income Stability")
-fig5.update_xaxes(tickangle=-20, nticks=6)
 c5.plotly_chart(fig5, use_container_width=True, theme=None)
 
-# ── ROW 3: DIFFERENT NUMERIC CHARTS ───────────────────
-c6, c7 = st.columns(2)
+# ── ROW 3: NUMERIC SUMMARIES ──────────────────────────
+st.markdown("### 📌 Respondent and Household Summary")
 
-age_df = filtered_df.dropna(subset=["respondent_age"])
-hh_df = filtered_df.dropna(subset=["hh_size"])
+n1, n2, n3, n4 = st.columns(4)
 
-# Respondent Age → Box Plot
-if age_df.empty:
-    fig6 = px.box(
-        pd.DataFrame({"respondent_age": []}),
-        y="respondent_age",
-        title="Respondent Age (No data)"
-    )
-else:
-    fig6 = px.box(
-        age_df,
-        y="respondent_age",
-        points="outliers",
-        title="Respondent Age Distribution"
-    )
-
-fig6.update_yaxes(title_text="Respondent Age (years)", nticks=8)
-fig6.update_xaxes(showticklabels=False)
-c6.plotly_chart(fig6, use_container_width=True, theme=None)
-
-# Household Size → Violin Plot
-if hh_df.empty:
-    fig7 = px.violin(
-        pd.DataFrame({"hh_size": []}),
-        y="hh_size",
-        title="Household Size (No data)"
-    )
-else:
-    fig7 = px.violin(
-        hh_df,
-        y="hh_size",
-        box=True,
-        points="all",
-        title="Household Size Distribution"
-    )
-
-fig7.update_yaxes(title_text="Household Size", nticks=8)
-fig7.update_xaxes(showticklabels=False)
-c7.plotly_chart(fig7, use_container_width=True, theme=None)
+n1.metric("Average Age", safe_value(filtered_df["respondent_age"], "mean"))
+n2.metric("Median Age", safe_value(filtered_df["respondent_age"], "median"))
+n3.metric("Average Household Size", safe_value(filtered_df["hh_size"], "mean"))
+n4.metric("Median Household Size", safe_value(filtered_df["hh_size"], "median"))
 
 # ── ROW 4: MORE INSIGHTS ──────────────────────────────
 c8, c9 = st.columns(2)
 
 fig8 = safe_bar(filtered_df, "transport_mode", "Transport to Facility")
-fig8.update_xaxes(tickangle=-25, nticks=6)
 c8.plotly_chart(fig8, use_container_width=True, theme=None)
 
 chronic_counts = make_counts(filtered_df, "chronic_illness")
