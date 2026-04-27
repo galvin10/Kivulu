@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 # ── LOAD DATA ─────────────────────────────────────────
-DEFAULT_FILE = r"G:\Kivulu\kivulu_GIS Ready.xlsx"
+DEFAULT_FILE = r"./kivulu_GIS Ready.xlsx"
 
 if not os.path.exists(DEFAULT_FILE):
     st.error(f"❌ File not found: {DEFAULT_FILE}")
